@@ -1,0 +1,7 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Root-level data files (use data/ subfolder)
+skill_list.xlsx
+skill_usage_log.xlsx
