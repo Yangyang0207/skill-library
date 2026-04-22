@@ -24,6 +24,15 @@ UPDATE_SHEET = "更新记录"
 STATS_SHEET = "统计汇总"
 
 
+def get_known_users(repo_path: str = REPO_PATH) -> set:
+    """从领取记录中获取所有已知用户名"""
+    log_path = os.path.join(repo_path, "data", "skill_usage_log.xlsx")
+    if not os.path.exists(log_path):
+        return set()
+    df = pd.read_excel(log_path, sheet_name=CLAIM_SHEET)
+    return set(df["用户"].dropna().unique())
+
+
 def load_or_create_workbook(path):
     if os.path.exists(path):
         sheets = pd.read_excel(path, sheet_name=None)

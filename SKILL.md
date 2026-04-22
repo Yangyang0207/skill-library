@@ -1,9 +1,9 @@
 ---
 name: skill-library
-description: "Skill 图书馆管理系统。当用户提出以下需求时触发：查找/推荐/领取 skill、我需要一个能做XX的skill、有没有XX相关技能、记录skill使用/领取、skill日报、skill更新记录、skill被领取多少次、谁用了哪个skill、skill统计。"
-description_zh: "Skill 图书馆：检索推荐、领取记录、更新记录、日报生成（支持 GitHub 跨用户同步）"
-description_en: "Skill Library: search, claim tracking, update log, daily report (GitHub sync supported)"
-version: 1.1.0
+description: "Skill 图书馆管理系统。当用户提出以下需求时触发：查找/推荐/领取/安装/发给我 skill、我需要一个能做XX的skill、有没有XX相关技能、记录skill使用/领取、skill日报、skill更新记录、skill被领取多少次、谁用了哪个skill、skill统计。"
+description_zh: "Skill 图书馆：检索推荐、自动领取记录、更新记录、日报生成（支持 GitHub 跨用户同步）"
+description_en: "Skill Library: search, auto claim tracking, update log, daily report (GitHub sync supported)"
+version: 1.2.0
 allowed-tools: Read,Write,Bash
 ---
 
@@ -24,7 +24,7 @@ allowed-tools: Read,Write,Bash
 
 ### 工作流 1：检索推荐 Skill
 
-**触发场景**：用户表达了某种需求，想知道有没有合适的 Skill
+**触发场景**：用户表达了某种需求，想知道有没有合适的 Skill（未明确表达领取意图）
 
 **步骤**：
 1. 从用户输入中提取关键词（1-3个）
@@ -35,20 +35,25 @@ allowed-tools: Read,Write,Bash
    例：`python scripts/query_skills.py "调研" "D:/skill-library"`
 3. 脚本自动执行 `git pull`，确保读取最新数据
 4. 解析返回的 JSON，将结果以表格形式呈现给用户
-5. **询问用户是否要"领取"某个 Skill**
+5. **如用户随后表达了"领取/安装/发给我"的意图，直接进入工作流 2（不再二次确认）**
 
 ### 工作流 2：记录 Skill 领取
 
-**触发场景**：用户确认领取某个 Skill
+**触发场景**：用户表达"领取/安装/发给我"某个 Skill 的意图
 
 **步骤**：
-1. 确认：skill 名称、用户姓名、repo 路径
-2. 执行记录脚本：
+1. 从用户输入中解析出目标 Skill 名称（如用户说"领取马静的调研问卷"，则 skill 为"马静-调研问卷生成…"）
+2. **判断用户姓名**：
+   - 读取 `skill_usage_log.xlsx` 的"领取记录" sheet，查该用户是否已有记录
+   - **有记录** → 直接使用已知姓名，无需询问
+   - **无记录（首次）** → 询问用户姓名（只问一次）
+3. 获取 repo 路径（默认 `D:/skill-library`）
+4. 执行记录脚本：
    ```bash
    python {baseDirectory}/scripts/record_usage.py claim "<skill_name>" "<user_name>" "<repo路径>"
    ```
-3. 脚本流程：`git pull` → 追加记录 → 保存 Excel → `git commit + push`
-4. 告知用户记录成功及累计领取次数
+5. 脚本自动完成：`git pull` → 追加记录 → 保存 Excel → `git commit + push`
+6. 告知用户记录成功及累计领取次数
 
 ### 工作流 3：记录 Skill 更新
 
