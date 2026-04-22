@@ -3,7 +3,7 @@ name: skill-library
 description: "Skill 图书馆管理系统。当用户提出以下需求时触发：查找/推荐/领取/安装/发给我 skill、我需要一个能做XX的skill、有没有XX相关技能、记录skill使用/领取、skill日报、skill更新记录、skill被领取多少次、谁用了哪个skill、skill统计。"
 description_zh: "Skill 图书馆：检索推荐、自动领取记录、更新记录、日报生成（支持 GitHub 跨用户同步）"
 description_en: "Skill Library: search, auto claim tracking, update log, daily report (GitHub sync supported)"
-version: 1.2.0
+version: 1.2.1
 allowed-tools: Read,Write,Bash
 ---
 
@@ -43,10 +43,10 @@ allowed-tools: Read,Write,Bash
 
 **步骤**：
 1. 从用户输入中解析出目标 Skill 名称（如用户说"领取马静的调研问卷"，则 skill 为"马静-调研问卷生成…"）
-2. **判断用户姓名**：
+2. **获取用户姓名**：
    - 读取 `skill_usage_log.xlsx` 的"领取记录" sheet，查该用户是否已有记录
    - **有记录** → 直接使用已知姓名，无需询问
-   - **无记录（首次）** → 询问用户姓名（只问一次）
+   - **无记录（首次）** → **必须询问用户姓名**
 3. 获取 repo 路径（默认 `D:/skill-library`）
 4. 执行记录脚本：
    ```bash
