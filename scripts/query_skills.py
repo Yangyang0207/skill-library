@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 """
 query_skills.py - Skill 检索脚本
-用法: python query_skills.py <关键词> [repo路径]
+用法: python query_skills.py <关键词> [数据源模式]
 
-会在读取前自动 git pull 同步最新数据
+数据源优先级:
+1. 飞书多维表格（优先，数据实时）
+2. 本地 Excel（备用，需 GitHub 同步）
+
+示例:
+  python query_skills.py "调研"
+  python query_skills.py "邓风华" "feishu"
+  python query_skills.py "罗琦" "excel"
 """
 
 import sys
@@ -11,25 +18,49 @@ import json
 import os
 import pandas as pd
 from difflib import SequenceMatcher
-from git_utils import git_pull
 
-REPO_PATH = os.path.dirname(os.path.dirname(__file__))  # skill-library 根目录
+REPO_PATH = os.path.dirname(os.path.dirname(__file__))
 
 
 def similarity(a, b):
     return SequenceMatcher(None, a.lower(), b.lower()).ratio()
 
 
-def search_skills(query: str, repo_path: str = REPO_PATH):
-    # 自动 pull 最新数据
+def search_feishu(query: str):
+    """从飞书多维表格搜索"""
+    try:
+        from feishu_client import FeishuClient
+        from feishu_config import (APP_ID, APP_SECRET, BITABLE_APP_TOKEN,
+                                   TABLE_SKILL)
+        client = FeishuClient(APP_ID, APP_SECRET, BITABLE_APP_TOKEN,
+                              TABLE_CLAIM, TABLE_UPDATE, TABLE_SKILL)
+        records = client.search_skills(query)
+        if records:
+            print(json.dumps({"query": query, "count": len(records),
+                             "source": "feishu", "results": records},
+                             ensure_ascii=False, indent=2))
+        else:
+            print(json.dumps({"query": query, "count": 0, "source": "feishu",
+                             "results": [], "message": "未找到匹配的 Skill"},
+                             ensure_ascii=False, indent=2))
+        return True
+    except Exception as e:
+        print(json.dumps({"error": f"飞书读取失败: {e}"}, ensure_ascii=False),
+              file=sys.stderr)
+        return False
+
+
+def search_excel(query: str, repo_path: str):
+    """从本地 Excel 搜索（需 Git 同步）"""
+    from git_utils import git_pull
+
     skill_list_path = os.path.join(repo_path, "data", "skill_list.xlsx")
     if os.path.exists(os.path.join(repo_path, ".git")):
-        code, _, _ = git_pull(repo_path)
-        if code != 0:
-            pass  # pull 失败不影响继续
+        git_pull(repo_path)
 
     if not os.path.exists(skill_list_path):
-        print(json.dumps({"error": f"找不到 skill 列表文件: {skill_list_path}"}, ensure_ascii=False))
+        print(json.dumps({"error": f"找不到 skill 列表文件: {skill_list_path}"},
+                         ensure_ascii=False))
         sys.exit(1)
 
     df = pd.read_excel(skill_list_path)
@@ -55,15 +86,36 @@ def search_skills(query: str, repo_path: str = REPO_PATH):
     results.sort(key=lambda x: x["_match_score"], reverse=True)
 
     if results:
-        print(json.dumps({"query": query, "count": len(results), "results": results}, ensure_ascii=False, indent=2))
+        print(json.dumps({"query": query, "count": len(results),
+                         "source": "excel", "results": results},
+                         ensure_ascii=False, indent=2))
     else:
-        print(json.dumps({"query": query, "count": 0, "results": [], "message": "未找到匹配的 Skill，请换个关键词试试"}, ensure_ascii=False, indent=2))
+        print(json.dumps({"query": query, "count": 0, "source": "excel",
+                         "results": [], "message": "未找到匹配的 Skill"},
+                         ensure_ascii=False, indent=2))
+
+
+def search_skills(query: str, mode: str = "auto"):
+    """
+    mode: "feishu" | "excel" | "auto"
+    auto 模式优先飞书，飞书失败则回退 Excel
+    """
+    if mode == "auto":
+        if os.path.exists(os.path.join(os.path.dirname(__file__), "feishu_config.py")):
+            if search_feishu(query):
+                return
+        # 飞书不可用，使用 Excel
+        search_excel(query, REPO_PATH)
+    elif mode == "feishu":
+        search_feishu(query)
+    elif mode == "excel":
+        search_excel(query, REPO_PATH)
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("用法: python query_skills.py <关键词> [repo路径]")
+        print("用法: python query_skills.py <关键词> [feishu|excel|auto]")
         sys.exit(1)
     query = sys.argv[1]
-    repo = sys.argv[2] if len(sys.argv) > 2 else REPO_PATH
-    search_skills(query, repo)
+    mode = sys.argv[2] if len(sys.argv) > 2 else "auto"
+    search_skills(query, mode)
