@@ -181,7 +181,7 @@ def main():
     if os.path.exists(LOCAL_SKILL_LIST):
         df = pd.read_excel(LOCAL_SKILL_LIST)
         df.columns = [c.strip() for c in df.columns]
-        records = [[str(row.get("序号", "")), str(row.get("SKILL名称", ""))]
+        records = [[str(row.get("序号", "")), str(row.get("SKILL 名称", ""))]
                    for _, row in df.iterrows()]
         batch_create_records(token, skill_table_id, skill_fields, records)
     else:

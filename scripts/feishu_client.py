@@ -102,7 +102,7 @@ class FeishuClient:
             return
         for i in range(0, len(records), 500):
             batch = records[i:i + 500]
-            record_ids = [{"record_id": r["record_id"]} for r in batch]
+            record_ids = [r["record_id"] for r in batch]  # list of strings
             self._request("POST",
                 f"/bitable/v1/apps/{self.app_token}/tables/{table_id}/records/batch_delete",
                 data={"records": record_ids})
