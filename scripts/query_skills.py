@@ -31,7 +31,7 @@ def search_feishu(query: str):
     try:
         from feishu_client import FeishuClient
         from feishu_config import (APP_ID, APP_SECRET, BITABLE_APP_TOKEN,
-                                   TABLE_SKILL)
+                                   TABLE_CLAIM, TABLE_UPDATE, TABLE_SKILL)
         client = FeishuClient(APP_ID, APP_SECRET, BITABLE_APP_TOKEN,
                               TABLE_CLAIM, TABLE_UPDATE, TABLE_SKILL)
         records = client.search_skills(query)
